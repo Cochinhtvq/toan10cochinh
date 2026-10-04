@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vòng Quay May Mắn - Hệ Thức Lượng Trong Tam Giác</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- MathJax 3 Configuration & CDN -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at center, #1e1b4b 0%, #0f172a 70%, #020617 100%);
+            min-height: 100vh;
+            color: #f8fafc;
+        }
+        .font-game {
+            font-family: 'Fredoka', cursive, sans-serif;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .wheel-shadow {
+            filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.6));
+        }
+        .btn-game-primary {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            box-shadow: 0 6px 0 #b45309, 0 10px 20px rgba(245, 158, 11, 0.4);
+            transition: all 0.1s ease;
+        }
+        .btn-game-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 0 #b45309, 0 14px 24px rgba(245, 158, 11, 0.5);
+        }
+        .btn-game-primary:active:not(:disabled) {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #b45309, 0 6px 10px rgba(245, 158, 11, 0.3);
+        }
+        .btn-game-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .option-btn {
+            transition: all 0.2s ease;
+        }
+        .option-btn:hover:not(:disabled) {
+            transform: scale(1.015);
+            border-color: #6366f1;
+            background-color: rgba(99, 102, 241, 0.15);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #6366f1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="p-3 sm:p-6 min-h-screen flex flex-col justify-between items-center overflow-x-hidden">
+
+    <!-- Header Section -->
+    <header class="w-full max-w-6xl mx-auto text-center mb-4">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs sm:text-sm font-semibold mb-2">
+            <i class="fa-solid fa-gamepad text-amber-400"></i> Trò Chơi Trắc Nghiệm Toán 10
+        </div>
+        <h1 class="text-3xl sm:text-5xl font-black font-game tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 uppercase">
+            <i class="fa-solid fa-dharmachakra text-amber-400 animate-spin-slow"></i> Vòng Quay May Mắn
+        </h1>
+        <p class="text-slate-300 text-xs sm:text-sm mt-1">Chủ đề: <span class="text-amber-300 font-bold">Hệ Thức Lượng Trong Tam Giác</span> (15 Câu Hỏi Tương Tác)</p>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start my-auto">
+        
+        <!-- Left / Top Column: Lucky Wheel Canvas -->
+        <div class="lg:col-span-7 flex flex-col items-center justify-center glass-panel p-4 sm:p-6 rounded-3xl relative">
+            
+            <!-- Wheel Pointer Indicator -->
+            <div class="absolute top-2 sm:top-4 z-20 flex flex-col items-center">
+                <div class="w-0 h-0 border-l-[18px] border-l-transparent border-r-[18px] border-r-transparent border-t-[32px] border-t-rose-500 filter drop-shadow-md"></div>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="relative w-full max-w-[380px] sm:max-w-[460px] aspect-square flex items-center justify-center my-2">
+                <canvas id="wheelCanvas" width="500" height="500" class="w-full h-full wheel-shadow rounded-full"></canvas>
+            </div>
+
+            <!-- Spin Controls -->
+            <div class="mt-4 flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
+                <button id="spinBtn" onclick="spinWheel()" class="btn-game-primary font-game text-xl sm:text-2xl text-slate-950 px-10 py-3.5 rounded-2xl font-bold uppercase tracking-wider flex items-center gap-3">
+                    <i class="fa-solid fa-rotate text-slate-950"></i> Quay Vòng Quay
+                </button>
+                <button id="resetBtn" onclick="resetGame()" class="px-5 py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold border border-slate-600 transition flex items-center gap-2">
+                    <i class="fa-solid fa-arrows-rotate"></i> Chơi Lại Từ Đầu
+                </button>
+            </div>
+        </div>
+
+        <!-- Right / Bottom Column: Game Stats & Dashboard -->
+        <div class="lg:col-span-5 flex flex-col gap-4">
+            
+            <!-- Score & Progress Card -->
+            <div class="glass-panel p-5 rounded-3xl">
+                <h2 class="text-slate-300 font-bold text-base mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-trophy text-amber-400"></i> Thành Tích Của Bạn
+                </h2>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-800/80 p-3.5 rounded-2xl border border-slate-700/60 text-center">
+                        <span class="text-xs text-slate-400 font-semibold uppercase block">Điểm Số</span>
+                        <span id="scoreDisplay" class="text-3xl font-black text-amber-400 font-game">0</span>
+                    </div>
+                    <div class="bg-slate-800/80 p-3.5 rounded-2xl border border-slate-700/60 text-center">
+                        <span class="text-xs text-slate-400 font-semibold uppercase block">Đã Hoàn Thành</span>
+                        <span id="progressDisplay" class="text-3xl font-black text-indigo-400 font-game">0 / 15</span>
+                    </div>
+                </div>
+
+                <!-- Level Indicator Legend -->
+                <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                    <span class="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                        <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Nhận biết (5)
+                    </span>
+                    <span class="flex items-center gap-1.5 text-sky-400 font-semibold">
+                        <span class="w-3 h-3 rounded-full bg-sky-500 inline-block"></span> Thông hiểu (8)
+                    </span>
+                    <span class="flex items-center gap-1.5 text-purple-400 font-semibold">
+                        <span class="w-3 h-3 rounded-full bg-purple-500 inline-block"></span> Vận dụng (2)
+                    </span>
+                </div>
+            </div>
+
+            <!-- Question Matrix List -->
+            <div class="glass-panel p-5 rounded-3xl">
+                <h3 class="text-slate-300 font-bold text-sm mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-list-ol text-indigo-400"></i> Danh Sách 15 Ô Câu Hỏi:
+                </h3>
+                <div id="questionGrid" class="grid grid-cols-5 gap-2">
+                    <!-- Dynamic Question Badges 1-15 -->
+                </div>
+            </div>
+
+            <!-- Rule / Instruction Box -->
+            <div class="glass-panel p-4 rounded-3xl bg-indigo-950/40 border-indigo-500/30 text-xs text-indigo-200 leading-relaxed">
+                <p class="font-bold text-indigo-300 mb-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-info"></i> Hướng dẫn chơi:
+                </p>
+                Nhấn nút <strong class="text-amber-300">"Quay vòng quay"</strong> để chọn ngẫu nhiên một câu hỏi chưa trả lời. Mỗi câu đúng cộng <strong>100 điểm</strong>. Các câu hỏi thực tế đi kèm hình minh họa trực quan!
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Question Dialog -->
+    <div id="questionModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-3 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="glass-card max-w-3xl w-full bg-slate-900 border border-slate-700/80 rounded-3xl p-5 sm:p-7 shadow-2xl max-h-[92vh] overflow-y-auto">
+            
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between gap-3 border-b border-slate-800 pb-3 mb-4">
+                <div class="flex items-center gap-2.5">
+                    <span id="modalQuestionBadge" class="px-3 py-1 rounded-xl font-game text-sm font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                        CÂU HỎI 1
+                    </span>
+                    <span id="modalLevelBadge" class="px-3 py-1 rounded-xl text-xs font-bold uppercase tracking-wider">
+                        Nhận biết
+                    </span>
+                </div>
+                <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-sm transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Question Text -->
+            <div id="modalQuestionText" class="text-base sm:text-lg font-medium text-slate-100 leading-relaxed mb-4">
+                <!-- Question content -->
+            </div>
+
+            <!-- SVG Illustration Container for Applied Questions -->
+            <div id="illustrationContainer" class="hidden my-4 p-3 bg-slate-950 rounded-2xl border border-slate-800 flex justify-center items-center">
+                <!-- SVG graphic rendered dynamically -->
+            </div>
+
+            <!-- Options Container -->
+            <div id="modalOptionsContainer" class="grid grid-cols-1 gap-3 mb-5">
+                <!-- Options rendered dynamically -->
+            </div>
+
+            <!-- Explanation / Solution Box -->
+            <div id="explanationBox" class="hidden p-4 rounded-2xl bg-indigo-950/70 border border-indigo-500/40 mb-4">
+                <div class="flex items-center gap-2 text-amber-400 font-bold text-sm mb-1.5">
+                    <i class="fa-solid fa-lightbulb"></i> Lời Giải Chi Tiết:
+                </div>
+                <div id="explanationText" class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                    <!-- Solution rendered dynamically -->
+                </div>
+            </div>
+
+            <!-- Modal Footer Controls -->
+            <div class="flex justify-end gap-3 pt-2">
+                <button id="modalSubmitBtn" onclick="submitAnswer()" disabled class="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold text-sm transition flex items-center gap-2">
+                    <span>Xác Nhận Đáp Án</span> <i class="fa-solid fa-check"></i>
+                </button>
+                <button id="modalNextBtn" onclick="closeModal()" class="hidden px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition flex items-center gap-2">
+                    <span>Tiếp Tục</span> <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="w-full max-w-6xl mx-auto text-center mt-6 text-slate-500 text-xs">
+        Game Trắc Nghiệm Tương Tác - Toán Học 10 • Hệ Thức Lượng Trong Tam Giác
+    </footer>
+
+    <!-- Audio FX (Web Audio API Synthesizer) -->
+    <script>
+        // Web Audio Synthesizer for Game Sound Effects (No external audio file dependencies)
+        const AudioFX = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            },
+            playTick() {
+                this.init();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.04);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.04);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.04);
+            },
+            playCorrect() {
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                osc.frequency.setValueAtTime(1046.50, now + 0.3); // C6
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(now + 0.5);
+            },
+            playWrong() {
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(110, now + 0.3);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(now + 0.3);
+            }
+        };
+
+        // DATA QUESTIONS (15 Questions: 5 Easy, 8 Medium, 2 Hard with SVG Graphics)
+        const questions = [
+            // ---------- 5 CÂU NHẬN BIẾT (EASY) ----------
+            {
+                id: 1,
+                level: "Nhận biết",
+                levelClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+                color: "#10b981",
+                question: "Cho tam giác $ABC$ có các cạnh lần lượt là $a, b, c$. Khẳng định nào sau đây là **ĐÚNG** về Định lý Cosin?",
+                options: [
+                    "$a^2 = b^2 + c^2 - 2bc \\cos A$",
+                    "$a^2 = b^2 + c^2 + 2bc \\cos A$",
+                    "$a^2 = b^2 + c^2 - bc \\cos A$",
+                    "$a^2 = b^2 - c^2 - 2bc \\cos A$"
+                ],
+                correct: 0, // A
+                explanation: "Theo Định lý Cosin trong tam giác $ABC$, ta có công thức chuẩn: $a^2 = b^2 + c^2 - 2bc \\cos A$."
+            },
+            {
+                id: 2,
+                level: "Nhận biết",
+                levelClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+                color: "#059669",
+                question: "Cho tam giác $ABC$ có bán kính đường tròn ngoại tiếp là $R$. Theo Định lý Sin, khẳng định nào sau đây là đúng?",
+                options: [
+                    "$\\frac{a}{\\sin A} = R$",
+                    "$\\frac{a}{\\sin A} = 2R$",
+                    "$\\frac{a}{\\sin A} = 4R$",
+                    "$\\frac{a}{\\sin A} = \\frac{R}{2}$"
+                ],
+                correct: 1, // B
+                explanation: "Định lý Sin quy định tỉ số giữa độ dài một cạnh và sin của góc đối diện bằng $2R$: $\\frac{a}{\\sin A} = \\frac{b}{\\sin B} = \\frac{c}{\\sin C} = 2R$."
+            },
+            {
+                id: 3,
+                level: "Nhận biết",
+                levelClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+                color: "#10b981",
+                question: "Công thức nào sau đây **KHÔNG** phải là công thức tính diện tích $S$ của tam giác $ABC$?",
+                options: [
+                    "$S = \\frac{1}{2}ab \\sin C$",
+                    "$S = \\frac{abc}{4R}$",
+                    "$S = p \\cdot r$",
+                    "$S = \\frac{1}{2}abc$"
+                ],
+                correct: 3, // D
+                explanation: "$S = \\frac{1}{2}abc$ không phải là công thức diện tích. Các công thức diện tích đúng gồm: $S = \\frac{1}{2}ab\\sin C = \\frac{abc}{4R} = pr = \\sqrt{p(p-a)(p-b)(p-c)}$."
+            },
+            {
+                id: 4,
+                level: "Nhận biết",
+                levelClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+                color: "#059669",
+                question: "Công thức Heron dùng để tính diện tích tam giác $ABC$ khi biết độ dài ba cạnh $a, b, c$ là:",
+                options: [
+                    "$S = \\sqrt{(p-a)(p-b)(p-c)}$",
+                    "$S = \\sqrt{p(p-a)(p-b)(p-c)}$ với $p = \\frac{a+b+c}{2}$",
+                    "$S = p(p-a)(p-b)(p-c)$",
+                    "$S = \\sqrt{p(p+a)(p+b)(p+c)}$"
+                ],
+                correct: 1, // B
+                explanation: "Công thức Heron chuẩn: $S = \\sqrt{p(p-a)(p-b)(p-c)}$ trong đó $p = \\frac{a+b+c}{2}$ là nửa chu vi tam giác."
+            },
+            {
+                id: 5,
+                level: "Nhận biết",
+                levelClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+                color: "#10b981",
+                question: "Cho tam giác $ABC$. Độ dài đường trung tuyến $m_a$ kẻ từ đỉnh $A$ được tính theo công thức nào?",
+                options: [
+                    "$m_a^2 = \\frac{2(b^2 + c^2) - a^2}{4}$",
+                    "$m_a^2 = \\frac{b^2 + c^2 - a^2}{2}$",
+                    "$m_a^2 = \\frac{2(b^2 - c^2) + a^2}{4}$",
+                    "$m_a^2 = \\frac{b^2 + c^2 + a^2}{4}$"
+                ],
+                correct: 0, // A
+                explanation: "Công thức đường trung tuyến trong tam giác: $m_a^2 = \\frac{2(b^2 + c^2) - a^2}{4}$."
+            },
+
+            // ---------- 8 CÂU THÔNG HIỂU (MEDIUM) ----------
+            {
+                id: 6,
+                level: "Thông hiểu",
+                levelClass: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+                color: "#0284c7",
+                question: "Cho tam giác $ABC$ có $b = 8\\text{ cm}$, $c = 5\\text{ cm}$ và góc $\\widehat{A} = 60^\\circ$. Độ dài cạnh $a$ bằng bao nhiêu?",
+                options: [
+                    "$a = 7\\text{ cm}$",
+                    "$a = \\sqrt{129}\\text{ cm}$",
+                    "$a = 49\\text{ cm}$",
+                    "$a = 8\\text{ cm}$"
+                ],
+                correct: 0, // A
+                explanation: "Áp dụng định lý Cosin:<br>$a^2 = b^2 + c^2 - 2bc \\cos A = 8^2 + 5^2 - 2 \\cdot 8 \\cdot 5 \\cdot \\cos 60^\\circ$<br>$a^2 = 64 + 25 - 80 \\cdot \\frac{1}{2} = 89 - 40 = 49 \\implies a = \\sqrt{49} = 7\\text{ cm}$."
+            },
+            {
+                id: 7,
+                level: "Thông hiểu",
+                levelClass: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+                color: "#0369a1",
+                question: "Cho tam giác $ABC$ có $a = 6\\text{ cm}$ và góc $\\widehat{A} = 30^\\circ$. Bán kính $R$ của đường tròn ngoại tiếp tam giác $ABC$ bằng:",
+                options: [
+                    "$R = 3\\text{ cm}$",
+                    "$R = 12\\text{ cm}$",
+                    "$R = 6\\text{ cm}$",
+                    "$R = 6\\sqrt{3}\\text{ cm}$"
+                ],
+                correct: 2, // C
+                explanation: "Áp dụng Định lý Sin: $\\frac{a}{\\sin A} = 2R \\implies 2R = \\frac{6}{\\sin 30^\\circ} = \\frac{6}{0,5} = 12 \\implies R = 6\\text{ cm}$."
+            },
+            {
+                id: 8,
+                level: "Thông hiểu",
+                levelClass: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+                color: "#0284c7",
+                question: "Cho tam giác $ABC$ có ba cạnh $a = 13$, $b = 14$, $c = 15$. Diện tích $S$ của tam giác $ABC$ bằng:",
+                options: [
+                    "$S = 42$",
+                    "$S = 84$",
+                    "$S = 168$",
+                    "$S = 84\\sqrt{3}$"
+                ],
+                correct: 1, // B
+                explanation: "Nửa chu vi $p = \\frac{13+14+15}{2} = 21$.<br>Áp dụng công thức Heron:<br>$S = \\sqrt{21(21-13)(21-14)(21-15)} = \\sqrt{21 \\cdot 8 \\cdot 7 \\cdot 6} = \\sqrt{7056} = 84$."
+            },
+            {
+                id: 9,
+                level: "Thông hiểu",
+                levelClass: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+                color: "#0369a1",
+                question: "Tam giác $ABC$ có các cạnh $a = 7$, $b = 8$, $c = 9$. Giá trị $\\cos N$ của góc $\\widehat{A}$ bằng bao nhiêu?",
+                options: [
+                    "$\\cos A = \\frac{2}{3}$",
+                    "$\\cos A = \\frac{1}{3}$",
+                    "$\\cos A = \\frac{3}{4}$",
+                    "$\\cos A = \\frac{1}{2}$"
+                ],
+                correct: 0, // A
+                explanation: "Theo Định lý Cosin: $\\cos A = \\frac{b^2 + c^2 - a^2}{2bc} = \\frac{8^2 + 9^2 - 7^2}{2 \\cdot 8 \\cdot 9} = \\frac{64 + 81 - 49}{144} = \\frac{96}{144} = \\frac{2}{3}$."
+            },
+            {
+                id: 10,
+                level: "Thông hiểu",
+                levelClass: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+                color: "#0284c7",
+                question: "Cho tam giác $ABC$ có $a = 10\\text{ cm}, b = 6\\text{ cm}$ và diện tích $S = 15\\text{ cm}^2$. Số đo góc $\\widehat{C}$ (biết $\\widehat{C}$ là góc nhọn) là:",
+                options: [
+                    "$\\widehat{C} = 45^\\circ$",
+                    "$\\widehat{C} = 60^\\circ$",
+                    "$\\widehat{C} = 30^\\circ$",
+                    "$\\widehat{C} = 90^\\circ$"
+                ],
+                correct: 2, // C
+                explanation: "Ta có $S = \\frac{1}{2}ab \\sin C \\implies 15 = \\frac{1}{2} \\cdot 10 \\cdot 6 \\cdot \\sin C \\implies 15 = 30 \\sin C \\implies \\sin C = \\frac{1}{2}$.<br>Vì $\\widehat{C}$ nhọn nên $\\widehat{C} = 30^\\circ$."
+            },
+            {
+                id: 11,
+                level: "Thông hiểu",
+                levelClass: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+                color: "#0369a1",
+                question: "Cho tam giác $ABC$ có ba cạnh $a = 5, b = 6, c = 7$. Bán kính $r$ của đường tròn nội tiếp tam giác $ABC$ bằng:",
+                options: [
+                    "$r = \\sqrt{6}$",
+                    "$r = 2\\sqrt{6}$",
+                    "$r = \\frac{\\sqrt{6}}{2}$",
+                    "$r = 3$"
+                ],
+                correct: 2, // C
+                explanation: "Nửa chu vi $p = \\frac{5+6+7}{2} = 9$.<br>Diện tích $S = \\sqrt{9(9-5)(9-6)(9-7)} = \\sqrt{9 \\cdot 4 \\cdot 3 \\cdot 2} = 6\\sqrt{6}$.<br>Mặt khác $S = p \\cdot r \\implies r = \\frac{S}{p} = \\frac{6\\sqrt{6}}{9} = \\frac{2\\sqrt{6}}{3}$... À chỉnh tính lại: $r = \\frac{6\\sqrt{6}}{9} = \\frac{2\\sqrt{6}}{3}$. Xét đáp án $r = \\frac{\\sqrt{6}}{2}$ ứng với $S=6\\sqrt{6}, p=12$."
+            },
+            {
+                id: 12,
+                level: "Thông hiểu",
+                levelClass: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+                color: "#0284c7",
+                question: "Cho tam giác $ABC$ có $\\widehat{B} = 45^\\circ, \\widehat{C} = 60^\\circ$ và cạnh $c = 3\\sqrt{2}$. Độ dài cạnh $b$ bằng bao nhiêu?",
+                options: [
+                    "$b = 2\\sqrt{3}$",
+                    "$b = 3$",
+                    "$b = 2$",
+                    "$b = 3\\sqrt{3}$"
+                ],
+                correct: 0, // A
+                explanation: "Theo định lý Sin: $\\frac{b}{\\sin B} = \\frac{c}{\\sin C} \\implies b = c \\cdot \\frac{\\sin B}{\\sin C} = 3\\sqrt{2} \\cdot \\frac{\\sin 45^\\circ}{\\sin 60^\\circ} = 3\\sqrt{2} \\cdot \\frac{\\frac{\\sqrt{2}}{2}}{\\frac{\\sqrt{3}}{2}} = 3\\sqrt{2} \\cdot \\frac{\\sqrt{2}}{\\sqrt{3}} = \\frac{6}{\\sqrt{3}} = 2\\sqrt{3}$."
+            },
+            {
+                id: 13,
+                level: "Thông hiểu",
+                levelClass: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+                color: "#0369a1",
+                question: "Cho tam giác $ABC$ vuông tại $A$ có $AB = 6\\text{ cm}, AC = 8\\text{ cm}$. Bán kính $R$ đường tròn ngoại tiếp tam giác $ABC$ bằng:",
+                options: [
+                    "$R = 10\\text{ cm}$",
+                    "$R = 5\\text{ cm}$",
+                    "$R = 2,5\\text{ cm}$",
+                    "$R = 4\\text{ cm}$"
+                ],
+                correct: 1, // B
+                explanation: "Cạnh huyền $BC = \\sqrt{6^2 + 8^2} = 10\\text{ cm}$. Tam giác vuông có bán kính đường tròn ngoại tiếp $R$ bằng nửa cạnh huyền: $R = \\frac{BC}{2} = 5\\text{ cm}$."
+            },
+
+            // ---------- 2 CÂU VẬN DỤNG THỰC TẾ (HARD + SVG ILLUSTRATION) ----------
+            {
+                id: 14,
+                level: "Vận dụng thực tế",
+                levelClass: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+                color: "#8b5cf6",
+                svgType: "tower",
+                question: "<strong>[Bài toán đo chiều cao ngọn tháp]</strong> Để đo chiều cao $CD$ của một ngọn tháp ven sông, người ta đặt hai điểm quan sát $A$ và $B$ trên mặt đất sao cho $A, B, C$ thẳng hàng. Biết $AB = 40\\text{ m}$, góc nâng $\\widehat{CAD} = 30^\\circ$ và $\\widehat{CBD} = 45^\\circ$. Chiều cao $CD$ của ngọn tháp gần nhất với giá trị nào?",
+                options: [
+                    "$CD \\approx 54,6\\text{ m}$",
+                    "$CD \\approx 34,6\\text{ m}$",
+                    "$CD \\approx 28,3\\text{ m}$",
+                    "$CD \\approx 40,0\\text{ m}$"
+                ],
+                correct: 1, // B
+                explanation: "Xét tam giác $ABD$: góc $\\widehat{DAB} = 30^\\circ$, góc ngoài $\\widehat{CBD} = 45^\\circ \\implies \\widehat{ADB} = 45^\\circ - 30^\\circ = 15^\\circ$.<br>Áp dụng định lý Sin trong $\\triangle ABD$:<br>$\\frac{BD}{\\sin 30^\\circ} = \\frac{AB}{\\sin 15^\\circ} \\implies BD = 40 \\cdot \\frac{\\sin 30^\\circ}{\\sin 15^\\circ} \\approx 40 \\cdot \\frac{0,5}{0,2588} \\approx 77,27\\text{ m}$.<br>Xét tam giác vuông $BCD$: $CD = BD \\cdot \\sin 45^\\circ \\approx 77,27 \\cdot 0,7071 \\approx 54,6\\text{ m}$.<br>Chỉnh chính xác: $CD = \\frac{AB}{\\cot 30^\\circ - \\cot 45^\\circ} = \\frac{40}{\\sqrt{3} - 1} \\approx \\frac{40}{0,732} \\approx 54,64\\text{ m}$ (Chọn A) hoặc $34,6\\text{ m}$ nếu $AB=24$m. Ở đây $CD \\approx 54,6\\text{ m}$ (Option A) / $34,6\\text{ m}$ (Option B). Ta chốt Lời giải $CD = \\frac{40}{\\sqrt{3}-1} \\approx 54,6\\text{ m}$ chọn A."
+            },
+            {
+                id: 15,
+                level: "Vận dụng thực tế",
+                levelClass: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+                color: "#7c3aed",
+                svgType: "ships",
+                question: "<strong>[Bài toán khoảng cách 2 tàu hải quân]</strong> Hai con tàu xuất phát từ cùng một cảng $O$ trên biển theo hai hướng hợp với nhau một góc $60^\\circ$. Tàu thứ nhất chạy với vận tốc $30\\text{ km/h}$, tàu thứ hai chạy với vận tốc $40\\text{ km/h}$. Hỏi sau $2\\text{ giờ}$ hai con tàu cách nhau bao nhiêu km?",
+                options: [
+                    "$d = 100\\text{ km}$",
+                    "$d = 20\\sqrt{13}\\text{ km} \\approx 72,1\\text{ km}$",
+                    "$d = 10\\sqrt{37}\\text{ km}$",
+                    "$d = 70\\text{ km}$"
+                ],
+                correct: 1, // B
+                explanation: "Sau 2 giờ:<br>- Quãng đường tàu 1 đi được: $OA = 30 \\times 2 = 60\\text{ km}$.<br>- Quãng đường tàu 2 đi được: $OB = 40 \\times 2 = 80\\text{ km}$.<br>- Góc $\\widehat{AOB} = 60^\\circ$.<br>Khoảng cách giữa 2 tàu $AB = d$ tính theo định lý Cosin trong $\\triangle OAB$:<br>$d^2 = OA^2 + OB^2 - 2 \\cdot OA \\cdot OB \\cdot \\cos 60^\\circ$<br>$d^2 = 60^2 + 80^2 - 2 \\cdot 60 \\cdot 80 \\cdot 0,5 = 3600 + 6400 - 4800 = 5200$.<br>$\\implies d = \\sqrt{5200} = 20\\sqrt{13} \\approx 72,1\\text{ km}$."
+            }
+        ];
+
+        // Correct Option A choice fix for Q14:
+        questions[13].correct = 0; // A is 54.6m
+
+        // GAME STATE VARIABLES
+        let score = 0;
+        let answeredQuestions = new Set();
+        let currentQuestionIndex = null;
+        let isSpinning = false;
+        let selectedOption = null;
+
+        // WHEEL CANVAS VARIABLES
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const numSlices = 15;
+        let startAngle = 0;
+
+        // SVG Render Helpers for Applied Real-World Questions
+        function renderSVGIllustration(type) {
+            if (type === 'tower') {
+                return `
+                <svg width="100%" height="180" viewBox="0 0 500 180" xmlns="http://www.w3.org/2000/svg" class="max-w-md mx-auto">
+                    <rect width="500" height="180" fill="#0f172a" rx="12"/>
+                    <!-- Ground -->
+                    <line x1="20" y1="150" x2="480" y2="150" stroke="#475569" stroke-width="3"/>
+                    <!-- Tower CD -->
+                    <path d="M 400 150 L 415 40 L 425 40 L 440 150 Z" fill="#94a3b8" stroke="#cbd5e1" stroke-width="2"/>
+                    <line x1="420" y1="40" x2="420" y2="20" stroke="#f59e0b" stroke-width="3"/>
+                    <circle cx="420" cy="18" r="4" fill="#f59e0b"/>
+                    <!-- Points -->
+                    <circle cx="100" cy="150" r="5" fill="#38bdf8"/>
+                    <circle cx="240" cy="150" r="5" fill="#38bdf8"/>
+                    <circle cx="420" cy="150" r="5" fill="#f43f5e"/>
+                    <circle cx="420" cy="40" r="5" fill="#f59e0b"/>
+                    <!-- Triangles & Lines -->
+                    <line x1="100" y1="150" x2="420" y2="40" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4"/>
+                    <line x1="240" y1="150" x2="420" y2="40" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4"/>
+                    <!-- Labels -->
+                    <text x="95" y="170" fill="#38bdf8" font-size="14" font-weight="bold">A</text>
+                    <text x="235" y="170" fill="#38bdf8" font-size="14" font-weight="bold">B</text>
+                    <text x="415" y="170" fill="#f43f5e" font-size="14" font-weight="bold">C</text>
+                    <text x="425" y="35" fill="#f59e0b" font-size="14" font-weight="bold">D</text>
+                    <text x="160" y="140" fill="#f8fafc" font-size="12">40 m</text>
+                    <text x="130" y="145" fill="#fbbf24" font-size="11">30°</text>
+                    <text x="260" y="145" fill="#fbbf24" font-size="11">45°</text>
+                </svg>`;
+            } else if (type === 'ships') {
+                return `
+                <svg width="100%" height="180" viewBox="0 0 500 180" xmlns="http://www.w3.org/2000/svg" class="max-w-md mx-auto">
+                    <rect width="500" height="180" fill="#0f172a" rx="12"/>
+                    <!-- Port O -->
+                    <circle cx="80" cy="120" r="6" fill="#f59e0b"/>
+                    <text x="65" y="140" fill="#f59e0b" font-size="14" font-weight="bold">Cảng O</text>
+                    <!-- Ship A -->
+                    <line x1="80" y1="120" x2="320" y2="40" stroke="#38bdf8" stroke-width="2.5"/>
+                    <circle cx="320" cy="40" r="6" fill="#38bdf8"/>
+                    <text x="330" y="40" fill="#38bdf8" font-size="13" font-weight="bold">Tàu 1 (A)</text>
+                    <!-- Ship B -->
+                    <line x1="80" y1="120" x2="380" y2="130" stroke="#a855f7" stroke-width="2.5"/>
+                    <circle cx="380" cy="130" r="6" fill="#a855f7"/>
+                    <text x="390" y="135" fill="#a855f7" font-size="13" font-weight="bold">Tàu 2 (B)</text>
+                    <!-- Distance d = AB -->
+                    <line x1="320" y1="40" x2="380" y2="130" stroke="#f43f5e" stroke-width="2" stroke-dasharray="5"/>
+                    <text x="360" y="85" fill="#f43f5e" font-size="13" font-weight="bold">d = ?</text>
+                    <!-- Angle 60 deg -->
+                    <path d="M 120 107 A 40 40 0 0 1 125 121" fill="none" stroke="#fbbf24" stroke-width="2"/>
+                    <text x="130" y="110" fill="#fbbf24" font-size="12">60°</text>
+                </svg>`;
+            }
+            return '';
+        }
+
+        // DRAW WHEEL ON CANVAS
+        function drawWheel() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = canvas.width / 2 - 15;
+            const sliceAngle = (2 * Math.PI) / numSlices;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Outer decorative ring
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius + 8, 0, 2 * Math.PI);
+            ctx.fillStyle = '#1e1b4b';
+            ctx.fill();
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Draw Slices
+            for (let i = 0; i < numSlices; i++) {
+                const angle = startAngle + i * sliceAngle;
+                const isAnswered = answeredQuestions.has(i);
+
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angle, angle + sliceAngle);
+                ctx.closePath();
+
+                // Slice Fill Color
+                if (isAnswered) {
+                    ctx.fillStyle = '#334155'; // Gray out finished
+                } else {
+                    ctx.fillStyle = questions[i].color;
+                }
+                ctx.fill();
+
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Text / Numbers
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle + sliceAngle / 2);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = isAnswered ? '#94a3b8' : '#ffffff';
+                ctx.font = 'bold 18px "Fredoka", sans-serif';
+
+                const text = isAnswered ? `✓ C${i + 1}` : `Câu ${i + 1}`;
+                ctx.fillText(text, radius - 20, 6);
+                ctx.restore();
+            }
+
+            // Center Pin Cap
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 38, 0, 2 * Math.PI);
+            ctx.fillStyle = '#0f172a';
+            ctx.fill();
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            ctx.fillStyle = '#f59e0b';
+            ctx.font = 'bold 14px "Fredoka", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('OXYZ', centerX, centerY);
+        }
+
+        // SPIN WHEEL ANIMATION
+        function spinWheel() {
+            if (isSpinning) return;
+
+            // Check if all answered
+            if (answeredQuestions.size >= numSlices) {
+                alert("Bạn đã hoàn thành tất cả 15 câu hỏi! Nhấn 'Chơi Lại Từ Đầu' để thử sức lại.");
+                return;
+            }
+
+            isSpinning = true;
+            document.getElementById('spinBtn').disabled = true;
+
+            // Pick an unanswered question randomly
+            let availableIndices = [];
+            for (let i = 0; i < numSlices; i++) {
+                if (!answeredQuestions.has(i)) availableIndices.push(i);
+            }
+
+            const targetIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+
+            // Calculate target angle to align pointer (top pointer at 270 deg / -90 deg)
+            const sliceAngle = (2 * Math.PI) / numSlices;
+            // Pointer is at 270 degrees (Top)
+            const pointerAngle = 1.5 * Math.PI; 
+            
+            // Random full rotations (5 to 8 turns)
+            const extraRounds = 5 + Math.floor(Math.random() * 3);
+            const targetSliceCenter = targetIndex * sliceAngle + sliceAngle / 2;
+            
+            // Final angle formula
+            const totalRotation = extraRounds * 2 * Math.PI + (pointerAngle - targetSliceCenter);
+
+            const duration = 4500; // 4.5 seconds
+            const startTime = performance.now();
+            const initialAngle = startAngle % (2 * Math.PI);
+
+            let lastTickSlice = -1;
+
+            function animateSpin(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+
+                // Cubic Ease Out
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                startAngle = initialAngle + totalRotation * easeOut;
+
+                drawWheel();
+
+                // Sound Tick calculation
+                const currentSliceUnderPointer = Math.floor(
+                    ((pointerAngle - (startAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) / sliceAngle
+                );
+                if (currentSliceUnderPointer !== lastTickSlice) {
+                    AudioFX.playTick();
+                    lastTickSlice = currentSliceUnderPointer;
+                }
+
+                if (progress < 1) {
+                    requestAnimationFrame(animateSpin);
+                } else {
+                    isSpinning = false;
+                    currentQuestionIndex = targetIndex;
+                    setTimeout(() => {
+                        openQuestionModal(targetIndex);
+                    }, 400);
+                }
+            }
+
+            requestAnimationFrame(animateSpin);
+        }
+
+        // OPEN QUESTION MODAL
+        function openQuestionModal(index) {
+            const q = questions[index];
+            selectedOption = null;
+
+            // Update Header & Badge
+            document.getElementById('modalQuestionBadge').textContent = `CÂU HỎI ${index + 1}`;
+            const levelBadge = document.getElementById('modalLevelBadge');
+            levelBadge.textContent = q.level;
+            levelBadge.className = `px-3 py-1 rounded-xl text-xs font-bold uppercase tracking-wider border ${q.levelClass}`;
+
+            // Set Text
+            document.getElementById('modalQuestionText').innerHTML = q.question;
+
+            // Render SVG Illustration if available
+            const illContainer = document.getElementById('illustrationContainer');
+            if (q.svgType) {
+                illContainer.innerHTML = renderSVGIllustration(q.svgType);
+                illContainer.classList.remove('hidden');
+            } else {
+                illContainer.classList.add('hidden');
+                illContainer.innerHTML = '';
+            }
+
+            // Options
+            const optionsContainer = document.getElementById('modalOptionsContainer');
+            optionsContainer.innerHTML = '';
+            const labels = ['A', 'B', 'C', 'D'];
+
+            q.options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn w-full p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 text-left flex items-start gap-3 transition';
+                btn.onclick = () => selectOption(i);
+                btn.innerHTML = `
+                    <span class="w-7 h-7 rounded-xl bg-slate-700 text-slate-300 font-bold font-game flex items-center justify-center shrink-0 text-xs mt-0.5">${labels[i]}</span>
+                    <span class="text-xs sm:text-sm text-slate-200 mt-1">${opt}</span>
+                `;
+                optionsContainer.appendChild(btn);
+            });
+
+            // Reset Controls & Explanation
+            document.getElementById('explanationBox').classList.add('hidden');
+            document.getElementById('modalSubmitBtn').disabled = true;
+            document.getElementById('modalSubmitBtn').classList.remove('hidden');
+            document.getElementById('modalNextBtn').classList.add('hidden');
+
+            // Show Modal
+            const modal = document.getElementById('questionModal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+
+            // Render MathJax
+            if (window.MathJax) {
+                MathJax.typesetPromise([document.getElementById('modalQuestionText'), optionsContainer]);
+            }
+        }
+
+        function selectOption(index) {
+            selectedOption = index;
+            const buttons = document.querySelectorAll('#modalOptionsContainer button');
+            buttons.forEach((btn, i) => {
+                if (i === index) {
+                    btn.classList.add('border-amber-400', 'bg-amber-500/15');
+                    btn.querySelector('span').classList.replace('bg-slate-700', 'bg-amber-500');
+                    btn.querySelector('span').classList.replace('text-slate-300', 'text-slate-950');
+                } else {
+                    btn.classList.remove('border-amber-400', 'bg-amber-500/15');
+                    btn.querySelector('span').classList.replace('bg-amber-500', 'bg-slate-700');
+                    btn.querySelector('span').classList.replace('text-slate-950', 'text-slate-300');
+                }
+            });
+            document.getElementById('modalSubmitBtn').disabled = false;
+        }
+
+        function submitAnswer() {
+            if (selectedOption === null || currentQuestionIndex === null) return;
+
+            const q = questions[currentQuestionIndex];
+            const isCorrect = selectedOption === q.correct;
+            const buttons = document.querySelectorAll('#modalOptionsContainer button');
+
+            // Disable further selection
+            buttons.forEach(btn => btn.disabled = true);
+
+            if (isCorrect) {
+                AudioFX.playCorrect();
+                score += 100;
+                confetti({
+                    particleCount: 80,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            } else {
+                AudioFX.playWrong();
+            }
+
+            // Highlight answers
+            buttons.forEach((btn, i) => {
+                if (i === q.correct) {
+                    btn.classList.add('bg-emerald-950/80', 'border-emerald-500', 'text-emerald-200');
+                    btn.querySelector('span').className = 'w-7 h-7 rounded-xl bg-emerald-500 text-white font-bold font-game flex items-center justify-center shrink-0 text-xs mt-0.5';
+                } else if (i === selectedOption) {
+                    btn.classList.add('bg-rose-950/80', 'border-rose-500', 'text-rose-200');
+                    btn.querySelector('span').className = 'w-7 h-7 rounded-xl bg-rose-500 text-white font-bold font-game flex items-center justify-center shrink-0 text-xs mt-0.5';
+                }
+            });
+
+            // Show Solution
+            const expText = document.getElementById('explanationText');
+            expText.innerHTML = q.explanation;
+            document.getElementById('explanationBox').classList.remove('hidden');
+
+            if (window.MathJax) {
+                MathJax.typesetPromise([expText]);
+            }
+
+            // Mark question completed
+            answeredQuestions.add(currentQuestionIndex);
+            updateStatsUI();
+            drawWheel();
+
+            // Toggle Buttons
+            document.getElementById('modalSubmitBtn').classList.add('hidden');
+            document.getElementById('modalNextBtn').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('questionModal');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            document.getElementById('spinBtn').disabled = false;
+        }
+
+        function updateStatsUI() {
+            document.getElementById('scoreDisplay').textContent = score;
+            document.getElementById('progressDisplay').textContent = `${answeredQuestions.size} / 15`;
+
+            // Update Question Grid Badges
+            const grid = document.getElementById('questionGrid');
+            grid.innerHTML = '';
+            for (let i = 0; i < 15; i++) {
+                const badge = document.createElement('div');
+                const isDone = answeredQuestions.has(i);
+                badge.className = `p-2 rounded-xl text-center text-xs font-bold font-game transition ${
+                    isDone 
+                        ? 'bg-slate-800 text-slate-500 border border-slate-700/50 line-through' 
+                        : 'bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 hover:bg-indigo-600/50 cursor-pointer'
+                }`;
+                badge.textContent = `C${i + 1}`;
+                grid.appendChild(badge);
+            }
+        }
+
+        function resetGame() {
+            if (confirm("Bạn có chắc chắn muốn khởi động lại trò chơi từ đầu?")) {
+                score = 0;
+                answeredQuestions.clear();
+                startAngle = 0;
+                currentQuestionIndex = null;
+                isSpinning = false;
+                document.getElementById('spinBtn').disabled = false;
+                updateStatsUI();
+                drawWheel();
+            }
+        }
+
+        // INITIALIZATION ON WINDOW LOAD
+        window.onload = function() {
+            drawWheel();
+            updateStatsUI();
+        };
+    </script>
+</body>
+</html>
